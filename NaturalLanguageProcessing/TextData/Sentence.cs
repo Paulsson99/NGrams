@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NaturalLanguageProcessing.Dictionaries;
 
 namespace NaturalLanguageProcessing.TextData
 {
@@ -29,8 +30,38 @@ namespace NaturalLanguageProcessing.TextData
         public void Tokenize()
         {
 
-            // Add code here
+            // Fix better later
+            string stripedText = this.text.ToLower().Trim(new char[] {' ', '?', '.', '!', ',', '-'});
+            string[] unprocessedTokenList = stripedText.Split(' ');
+            foreach (string token in unprocessedTokenList)
+            {
+                tokenList.Add(token.Trim(new char[] { '"', '\'' }));
+            }
+            
+        }
 
+        public void Indexinize(Dictionary dict, DictionaryItemComparer comparer)
+        {
+            foreach (string token in this.tokenList)
+            {
+                int index = dict.ItemList.BinarySearch(new DictionaryItem(token), comparer);
+                this.TokenIndexList.Add(index);
+            }
+        }
+
+        public List<List<string>> NGrams(int n)
+        {
+            List<List<string>> nGrams = new List<List<string>>();
+            for (int i=0; i + n < tokenList.Count; i++)
+            {
+                List<string> nGram = new List<string>();
+                for (int j=0; j < n; j++)
+                {
+                    nGram.Add(tokenList[i + j]);
+                }
+                nGrams.Add(nGram);
+            }
+            return nGrams;
         }
 
         public string Text

@@ -39,9 +39,22 @@ namespace NaturalLanguageProcessing.NGrams
             //
             // (There may be other options too...)
 
-
             // Add code here
+            int index = itemList.BinarySearch(nGram, comparer);
+            if (index < 0)
+            {
+                index = ~index;
+                itemList.Insert(index, nGram);
+            }
+            else
+            {
+                itemList[index].NumberOfInstances += 1;
+            }
+        }
 
+        public void DropRare(int cutoff)
+        {
+            itemList.RemoveAll(item => item.NumberOfInstances <= cutoff);
         }
 
         // This method you get for free... :)

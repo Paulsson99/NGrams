@@ -39,9 +39,37 @@ namespace NaturalLanguageProcessing.Dictionaries
         // release mode) for a data set of the size considered here.
         public void Build(TextDataSet dataSet)
         {
-            
-            // Add code here:
+            // Add all tokens to a single list
+            List<string> tokenList = new List<string> ();
+            foreach (Sentence sentence in dataSet.SentenceList)
+            {
+                tokenList.AddRange(sentence.TokenList);
+            }
+            // Sort the list is alfabetical order
+            tokenList.Sort();
 
+            // Count the number of ocurrences in the list for each token and add that to the dictionary
+            int count = 0;
+            string previousToken = tokenList[0];
+            foreach (string currentToken in tokenList)
+            {
+                if (previousToken != currentToken)
+                {
+                    // Add the previous item when we see a new one
+                    DictionaryItem item = new DictionaryItem(previousToken);
+                    item.Count = count;
+                    itemList.Add(item);
+                    // Reset the count and update the previous token
+                    count = 0;
+                    previousToken = currentToken;
+                }
+                // Update the count
+                count += 1;
+            }
+            // Add the last item to the dictionary
+            DictionaryItem lastItem = new DictionaryItem(previousToken);
+            lastItem.Count = count;
+            itemList.Add(lastItem);
         }
 
         public List<DictionaryItem> ItemList

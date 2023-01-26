@@ -49,9 +49,7 @@ namespace NaturalLanguageProcessing.TextData
             DictionaryItemComparer comparer = new DictionaryItemComparer();
             foreach (Sentence sentence in sentenceList)
             {
-                
-                // Add code here
-
+                sentence.Indexinize(dictionary, comparer);
             }
         }
 

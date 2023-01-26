@@ -13,5 +13,13 @@ namespace NaturalLanguageProcessing.Dictionaries
             return item1.Token.CompareTo(item2.Token);
         }
     }
+
+    public class DictionaryItemOccurrenceComparer : IComparer<DictionaryItem>
+    {
+        public int Compare(DictionaryItem item1, DictionaryItem item2)
+        {
+            return item1.Count.CompareTo(item2.Count);
+        }
+    }
 }
 
