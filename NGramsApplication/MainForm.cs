@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using NaturalLanguageProcessing.Dictionaries;
 using NaturalLanguageProcessing.NGrams;
 using NaturalLanguageProcessing.TextData;
+using NaturalLanguageProcessing.Tokens;
 
 namespace NGramsApplication
 {
@@ -118,6 +119,7 @@ namespace NGramsApplication
         {
             tokenizeButton.Enabled = false;
             tokenizationThread = new Thread(new ThreadStart(() => TokenizationLoop()));
+            tokenizationThread.IsBackground = true;
             tokenizationThread.Start();
         }
 
@@ -130,8 +132,10 @@ namespace NGramsApplication
 
         private void makeDictionaryAndIndexButton_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("Test");
             makeDictionaryAndIndexButton.Enabled = false;
             indexingThread = new Thread(new ThreadStart(() => IndexingLoop()));
+            indexingThread.IsBackground = true;
             indexingThread.Start();
         }
 
@@ -151,12 +155,15 @@ namespace NGramsApplication
         // 
         private void ProcessingLoop()
         {
-            const int COUNT_CUTOFF = 5;
+            const int COUNT_CUTOFF = 20;
             const int NUMBER_OF_N_GRAMS_SHOWN = 300;
+            const int NUMBER_OF_R_VALUES_SHOWN = 50;
 
             // Add your analysis as a list of strings (that can then be shown on screen and saved to file).
             analysisList = new List<string>();
+            DictionaryItemComparer tokenComparer  = new DictionaryItemComparer();
             DictionaryItemOccurrenceComparer occurrenceComparer = new DictionaryItemOccurrenceComparer();
+            SharedTokenComparer sharedTokenComparer = new SharedTokenComparer();
 
             // Step (1)
             // Find the 300 most common unigrams (from the dictionaries, after sorting
@@ -190,6 +197,7 @@ namespace NGramsApplication
             }
 
             // ############### END WRITTEN UNIGRAMS ##################
+            ThreadSafeShowAnalysis();
             // ############### SPOKEN UNIGRAMS ##################
 
             spokenUniGramSet = new NGramSet();
@@ -203,8 +211,10 @@ namespace NGramsApplication
             List<NGram> commonSpokenUnigrams = new List<NGram>();
             for (int i = 0; i < NUMBER_OF_N_GRAMS_SHOWN; i++)
             {
-                List<string> tokens = new List<string>();
-                tokens.Add(spokenDictionarySortedByOccurrence[i].Token);
+                List<string> tokens = new List<string>
+                {
+                    spokenDictionarySortedByOccurrence[i].Token
+                };
                 NGram nGram = new NGram(tokens);
                 nGram.NumberOfInstances = spokenDictionarySortedByOccurrence[i].Count;
                 commonSpokenUnigrams.Add(nGram);
@@ -219,7 +229,7 @@ namespace NGramsApplication
                 analysisList.Add(spokenUniGramSet.ItemList[ii].AsString());
             }
             // ############### END SPOKEN UNIGRAMS ##################
-
+            ThreadSafeShowAnalysis();
             // Step (2) 
             // Find the 300 most common bigrams, after generating the bigram sets,
             //     one for the written data and one for the spoken using the NGramSet class 
@@ -227,7 +237,7 @@ namespace NGramsApplication
 
             // ############### WRITTEN BIGRAMS  ##################
             writtenBiGramSet = new NGramSet();
-            
+
             // Add code here for generating and sorting the written bigram set.
             // Before sorting, run through the list and remove rare bigrams (speeds up
             // the sorting - we are only interested in the most frequent bigrams anyway;
@@ -240,6 +250,7 @@ namespace NGramsApplication
                     writtenBiGramSet.Append(nGram);
                 }
             }
+            writtenBiGramSet.Process();
             writtenBiGramSet.DropRare(COUNT_CUTOFF);
             writtenBiGramSet.SortOnFrequency();
 
@@ -252,6 +263,7 @@ namespace NGramsApplication
             }
 
             // ############### END WRITTEN BIGRAMS  ##################
+            ThreadSafeShowAnalysis();
             // ############### SPOKEN BIGRAMS  ##################
 
             spokenBiGramSet = new NGramSet();
@@ -268,6 +280,7 @@ namespace NGramsApplication
                     spokenBiGramSet.Append(nGram);
                 }
             }
+            spokenBiGramSet.Process();
             spokenBiGramSet.DropRare(COUNT_CUTOFF);
             spokenBiGramSet.SortOnFrequency();
 
@@ -279,7 +292,7 @@ namespace NGramsApplication
                 analysisList.Add(spokenBiGramSet.ItemList[ii].AsString());
             }
             // ############### END SPOKEN BIGRAMS  ##################
-
+            ThreadSafeShowAnalysis();
             // Step (3) 
             //     Find the 300 most common trigrams (after generating the trigram set.
             //     using the NGramSet class (where you have to write code for appending
@@ -293,7 +306,7 @@ namespace NGramsApplication
 
             // ############### WRITTEN TRIGRAMS  ##################
 
-            NGramSet writtenTriGramSet = new NGramSet();
+            writtenTriGramSet = new NGramSet();
 
             foreach (Sentence sentence in writtenDataSet.SentenceList)
             {
@@ -302,6 +315,7 @@ namespace NGramsApplication
                     writtenTriGramSet.Append(nGram);
                 }
             }
+            writtenTriGramSet.Process();
             writtenTriGramSet.DropRare(COUNT_CUTOFF);
             writtenTriGramSet.SortOnFrequency();
 
@@ -314,6 +328,7 @@ namespace NGramsApplication
             }
 
             // ############### END WRITTEN TRIGRAMS  ##################
+            ThreadSafeShowAnalysis();
             // ############### SPOKEN TRIGRAMS  ##################
 
             spokenTriGramSet = new NGramSet();
@@ -330,6 +345,7 @@ namespace NGramsApplication
                     spokenTriGramSet.Append(nGram);
                 }
             }
+            spokenTriGramSet.Process();
             spokenTriGramSet.DropRare(COUNT_CUTOFF);
             spokenTriGramSet.SortOnFrequency();
 
@@ -341,7 +357,7 @@ namespace NGramsApplication
                 analysisList.Add(spokenTriGramSet.ItemList[ii].AsString());
             }
             // ############### END SPOKEN TRIGRAMS  ##################
-
+            ThreadSafeShowAnalysis();
             // Step (4) Using the dictionaries (one for the written set and one for the spoken),
             // Find the 50 tokens with the largest values of r and the 50 tokens with the
             // smallest values of r. Consider only tokens that are present (with at least
@@ -362,10 +378,24 @@ namespace NGramsApplication
             // tokens and r-values, then make a list of such tuples and sort it (based on r, i.e. "Item2";
             // see the definition of the Tuple concept e.g. on MSDN.
             // In that case, use: List<Tuple<string, double>> tokenRTupleList = new List<Tuple<string, double>>();
+            Console.WriteLine("Test");
+            List<SharedToken> sharedTokens = new List<SharedToken>();
+            foreach (DictionaryItem spokenItem in spokenDictionarySortedByOccurrence) 
+            {
+                // Perform binary search on the list that is sorted in alphabetical order!!!
+                int index = writtenDataSet.Dictionary.ItemList.BinarySearch(spokenItem, tokenComparer);
+                if (index >= 0)
+                {
+                    // Token found in both data sets
+                    DictionaryItem writtenItem = writtenDataSet.Dictionary.ItemList[index];
+                    SharedToken sharedToken = new SharedToken(spokenItem.Token, spokenItem.Count, writtenItem.Count);
+                    sharedTokens.Add(sharedToken);
+                }
+            }
+            sharedTokens.Sort(sharedTokenComparer);
+            sharedTokens.Reverse();
 
-            //
-            // Add code here:
-            //
+            Console.WriteLine("Test");
 
             // Then store information about the number of tokens in each set, as well as the number of shared tokens:
             analysisList.Add("=========================================");
@@ -373,21 +403,26 @@ namespace NGramsApplication
             analysisList.Add("=========================================");
             analysisList.Add("Spoken set:  " + spokenDataSet.Dictionary.ItemList.Count.ToString());
             analysisList.Add("Written set: " + writtenDataSet.Dictionary.ItemList.Count.ToString());
-            //    analysisList.Add("Shared:      " ... Add code here ...)
+            analysisList.Add("Shared:      " + sharedTokens.Count.ToString());
 
             // Then store information about the 50 tokens with the highest r-values:
             analysisList.Add("=========================================");
             analysisList.Add("High-r tokens: ");
             analysisList.Add("=========================================");
-
-            // Add code here
+            for (int ii = 0; ii < NUMBER_OF_R_VALUES_SHOWN; ii++)
+            {
+                analysisList.Add(sharedTokens[ii].AsString());
+            }
 
             // Then store information about the 50 tokens with the lowest r-values:
             analysisList.Add("=========================================");
             analysisList.Add("Small-r tokens: ");
             analysisList.Add("=========================================");
-            
-            // Add code here
+
+            for (int ii = 0; ii < NUMBER_OF_R_VALUES_SHOWN; ii++)
+            {
+                analysisList.Add(sharedTokens[sharedTokens.Count - ii - 1].AsString());
+            }
 
             // =================================================================
             // (5) Write a thread-safe method here for
@@ -410,6 +445,7 @@ namespace NGramsApplication
         {
             processButton.Enabled = false;
             processingThread = new Thread(new ThreadStart(() => ProcessingLoop()));
+            processingThread.IsBackground = true;
             processingThread.Start();
         }
 
@@ -437,7 +473,7 @@ namespace NGramsApplication
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Application.Exit();
+            Environment.Exit(Environment.ExitCode);
         }
 
     }

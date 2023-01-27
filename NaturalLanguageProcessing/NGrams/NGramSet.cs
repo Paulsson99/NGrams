@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NaturalLanguageProcessing.Dictionaries;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,11 +11,13 @@ namespace NaturalLanguageProcessing.NGrams
     {
         private List<NGram> itemList;
         private NGramComparer comparer;
+        private List<NGram> tempItemList;
 
         public NGramSet()
         {
             itemList = new List<NGram>();
             comparer = new NGramComparer();
+            tempItemList = new List<NGram>();
         }
 
         public void Append(List<string> tokenList)
@@ -40,16 +43,47 @@ namespace NaturalLanguageProcessing.NGrams
             // (There may be other options too...)
 
             // Add code here
-            int index = itemList.BinarySearch(nGram, comparer);
-            if (index < 0)
+            tempItemList.Add(nGram);
+
+            //int index = itemList.BinarySearch(nGram, comparer);
+            //if (index < 0)
+            //{
+            //    index = ~index;
+            //    itemList.Insert(index, nGram);
+            //}
+            //else
+            //{
+            //    itemList[index].NumberOfInstances += 1;
+            //}
+        }
+
+        public void Process()
+        {
+            tempItemList.Sort(comparer);
+
+            int count = 0;
+            NGram previousNGram = tempItemList[0];
+
+            foreach (NGram currentNGram in tempItemList)
             {
-                index = ~index;
-                itemList.Insert(index, nGram);
+                if (previousNGram.TokenString != currentNGram.TokenString)
+                {
+                    // Add the previous item when we see a new one
+                    previousNGram.NumberOfInstances = count;
+                    itemList.Add(previousNGram);
+                    // Reset the count and update the previous token
+                    count = 0;
+                    previousNGram = currentNGram;
+                }
+                // Update the count
+                count += 1;
             }
-            else
-            {
-                itemList[index].NumberOfInstances += 1;
-            }
+            // Add the last item to the dictionary
+            previousNGram.NumberOfInstances = count;
+            itemList.Add(previousNGram);
+            
+            // Clear the temporary list to free up memory
+            tempItemList.Clear();
         }
 
         public void DropRare(int cutoff)
