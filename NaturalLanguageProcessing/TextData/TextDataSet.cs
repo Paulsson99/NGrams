@@ -46,10 +46,9 @@ namespace NaturalLanguageProcessing.TextData
             // DictionaryItemComparer. See if you can figure out how to use it,
             // otherwise ask the examiner or the assistant.
 
-            DictionaryItemComparer comparer = new DictionaryItemComparer();
             foreach (Sentence sentence in sentenceList)
             {
-                sentence.Indexinize(dictionary, comparer);
+                sentence.BuildSentenceIndex(dictionary);
             }
         }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NaturalLanguageProcessing.Dictionaries;
+using System.Text.RegularExpressions;
 
 namespace NaturalLanguageProcessing.TextData
 {
@@ -12,11 +13,13 @@ namespace NaturalLanguageProcessing.TextData
         private string text;
         private List<string> tokenList;
         private List<int> tokenIndexList;
+        private DictionaryItemComparer comparer;
 
         public Sentence()
         {
             tokenList = new List<string>();
-            tokenIndexList = new List<int>();   
+            tokenIndexList = new List<int>();
+            comparer = new DictionaryItemComparer();
         }
 
         // Write this method:
@@ -29,19 +32,29 @@ namespace NaturalLanguageProcessing.TextData
         // many special cases to deal with!
         public void Tokenize()
         {
-
-            // Fix better later
-            string stripedText = this.text.ToLower().Trim(new char[] {' ', '?', '.', '!', ',', '-'});
-            string[] unprocessedTokenList = stripedText.Split(' ');
-            foreach (string token in unprocessedTokenList)
+            string processedText = text.ToLower();
+            // Remove the punctuation from the end of the string
+            processedText = Regex.Replace(processedText, @"[^a-z0-9]+$", "");
+            // Split the text into words and ignore empty entries
+            string[] wordArray = processedText.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            // Do some final tweaks on each word
+            foreach (string word in wordArray)
             {
-                tokenList.Add(token.Trim(new char[] { '"', '\'' }));
+                // Remove all special characters except a dot from the end a string (a dot is a abreviation as the end of sentence dot is already striped away)
+                string processedWord = Regex.Replace(word, @"[^a-z0-9.]+$", "");
+                // Remove all special characters from the start of a word
+                processedWord = Regex.Replace(processedWord, @"^[^a-z0-9]+", "");
+                // Add the word if it is not an empty string
+                if (!string.IsNullOrEmpty(processedWord))
+                {
+                    tokenList.Add(processedWord);
+                }
             }
-            
         }
 
-        public void Indexinize(Dictionary dict, DictionaryItemComparer comparer)
+        public void BuildSentenceIndex(Dictionary dict)
         {
+            // Loop over all tokens and find the corresponding index in the (sorted) dictionary and add that to the index list
             foreach (string token in this.tokenList)
             {
                 int index = dict.ItemList.BinarySearch(new DictionaryItem(token), comparer);
@@ -51,10 +64,13 @@ namespace NaturalLanguageProcessing.TextData
 
         public List<List<string>> NGrams(int n)
         {
+            // Return a list of all possible n-grams in the sentence
             List<List<string>> nGrams = new List<List<string>>();
-            for (int i=0; i + n < tokenList.Count; i++)
+            // Loop over the start word in the n-gram
+            for (int i=0; i + n - 1 < tokenList.Count; i++)
             {
                 List<string> nGram = new List<string>();
+                // Add n entris to the n-gram
                 for (int j=0; j < n; j++)
                 {
                     nGram.Add(tokenList[i + j]);

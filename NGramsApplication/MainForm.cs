@@ -161,6 +161,8 @@ namespace NGramsApplication
 
             // Add your analysis as a list of strings (that can then be shown on screen and saved to file).
             analysisList = new List<string>();
+
+            // Initialize all comparators needed in this function
             DictionaryItemComparer tokenComparer  = new DictionaryItemComparer();
             DictionaryItemOccurrenceComparer occurrenceComparer = new DictionaryItemOccurrenceComparer();
             SharedTokenComparer sharedTokenComparer = new SharedTokenComparer();
@@ -171,12 +173,13 @@ namespace NGramsApplication
 
             // ############### WRITTEN UNIGRAMS ##################
             writtenUniGramSet = new NGramSet();
+
+            // Create a copy of the writtenDataSet and sort it in desending order
             List<DictionaryItem> writtenDictionarySortedByOccurrence = new List<DictionaryItem>(writtenDataSet.Dictionary.ItemList);
             writtenDictionarySortedByOccurrence.Sort(occurrenceComparer);
-            // Decending order
             writtenDictionarySortedByOccurrence.Reverse();
 
-            // No need to do anymore sorting, we can just take the unigrams from the dictionary
+            // Grab the most common unigrams from the dictionary
             List<NGram> commonWrittenUnigrams = new List<NGram>();
             for (int i = 0; i < NUMBER_OF_N_GRAMS_SHOWN; i++)
             {
@@ -201,13 +204,12 @@ namespace NGramsApplication
             // ############### SPOKEN UNIGRAMS ##################
 
             spokenUniGramSet = new NGramSet();
-
+            // Create a copy of the spokenDataSet and sort it in desending order
             List<DictionaryItem> spokenDictionarySortedByOccurrence = new List<DictionaryItem>(spokenDataSet.Dictionary.ItemList);
             spokenDictionarySortedByOccurrence.Sort(occurrenceComparer);
-            // Decending order
             spokenDictionarySortedByOccurrence.Reverse();
 
-            // No need to do anymore sorting, we can just take the unigrams from the dictionary
+            // Grab the most common unigrams from the dictionary
             List<NGram> commonSpokenUnigrams = new List<NGram>();
             for (int i = 0; i < NUMBER_OF_N_GRAMS_SHOWN; i++)
             {
@@ -243,6 +245,7 @@ namespace NGramsApplication
             // the sorting - we are only interested in the most frequent bigrams anyway;
             // see also the assignment text.
 
+            // Add all possible 2-grams to the writtenBiGramSet
             foreach (Sentence sentence in writtenDataSet.SentenceList)
             {
                 foreach (List<string> nGram in sentence.NGrams(2))
@@ -250,6 +253,7 @@ namespace NGramsApplication
                     writtenBiGramSet.Append(nGram);
                 }
             }
+            // Process the data (count occurences) and drop rare items before sorting the list
             writtenBiGramSet.Process();
             writtenBiGramSet.DropRare(COUNT_CUTOFF);
             writtenBiGramSet.SortOnFrequency();
@@ -273,6 +277,7 @@ namespace NGramsApplication
             // the sorting - we are only interested in the most frequent bigrams anyway;
             // see also the assignment text.
 
+            // Add all possible 2-grams to the spokenBiGramSet
             foreach (Sentence sentence in spokenDataSet.SentenceList)
             {
                 foreach (List<string> nGram in sentence.NGrams(2))
@@ -280,6 +285,7 @@ namespace NGramsApplication
                     spokenBiGramSet.Append(nGram);
                 }
             }
+            // Process the data (count occurences) and drop rare items before sorting the list
             spokenBiGramSet.Process();
             spokenBiGramSet.DropRare(COUNT_CUTOFF);
             spokenBiGramSet.SortOnFrequency();
@@ -306,8 +312,8 @@ namespace NGramsApplication
 
             // ############### WRITTEN TRIGRAMS  ##################
 
+            // Add all possible 2-grams to the writtenTriGramSet
             writtenTriGramSet = new NGramSet();
-
             foreach (Sentence sentence in writtenDataSet.SentenceList)
             {
                 foreach (List<string> nGram in sentence.NGrams(3))
@@ -315,6 +321,7 @@ namespace NGramsApplication
                     writtenTriGramSet.Append(nGram);
                 }
             }
+            // Process the data (count occurences) and drop rare items before sorting the list
             writtenTriGramSet.Process();
             writtenTriGramSet.DropRare(COUNT_CUTOFF);
             writtenTriGramSet.SortOnFrequency();
@@ -331,13 +338,13 @@ namespace NGramsApplication
             ThreadSafeShowAnalysis();
             // ############### SPOKEN TRIGRAMS  ##################
 
-            spokenTriGramSet = new NGramSet();
-
             // Add code here for generating and sorting the spoken trigram set.
             // Before sorting, run through the list and remove rare trigrams (speeds up
             // the sorting - we are only interested in the most frequent trigrams anyway;
             // see also the assignment text.
 
+            // Add all possible 2-grams to the spokenTriGramSet
+            spokenTriGramSet = new NGramSet();
             foreach (Sentence sentence in spokenDataSet.SentenceList)
             {
                 foreach (List<string> nGram in sentence.NGrams(3))
@@ -345,6 +352,7 @@ namespace NGramsApplication
                     spokenTriGramSet.Append(nGram);
                 }
             }
+            // Process the data (count occurences) and drop rare items before sorting the list
             spokenTriGramSet.Process();
             spokenTriGramSet.DropRare(COUNT_CUTOFF);
             spokenTriGramSet.SortOnFrequency();
@@ -378,9 +386,10 @@ namespace NGramsApplication
             // tokens and r-values, then make a list of such tuples and sort it (based on r, i.e. "Item2";
             // see the definition of the Tuple concept e.g. on MSDN.
             // In that case, use: List<Tuple<string, double>> tokenRTupleList = new List<Tuple<string, double>>();
-            Console.WriteLine("Test");
+               
+            // Iterate through all spoken words and search for them in the written data set. If the word is in both add it to sharedTokens
             List<SharedToken> sharedTokens = new List<SharedToken>();
-            foreach (DictionaryItem spokenItem in spokenDictionarySortedByOccurrence) 
+            foreach (DictionaryItem spokenItem in spokenDataSet.Dictionary.ItemList) 
             {
                 // Perform binary search on the list that is sorted in alphabetical order!!!
                 int index = writtenDataSet.Dictionary.ItemList.BinarySearch(spokenItem, tokenComparer);
@@ -394,8 +403,6 @@ namespace NGramsApplication
             }
             sharedTokens.Sort(sharedTokenComparer);
             sharedTokens.Reverse();
-
-            Console.WriteLine("Test");
 
             // Then store information about the number of tokens in each set, as well as the number of shared tokens:
             analysisList.Add("=========================================");

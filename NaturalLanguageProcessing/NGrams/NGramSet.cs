@@ -43,6 +43,8 @@ namespace NaturalLanguageProcessing.NGrams
             // (There may be other options too...)
 
             // Add code here
+
+            // Just add the nGram to a temporary list and call Process() when all n-grams have been added
             tempItemList.Add(nGram);
 
             //int index = itemList.BinarySearch(nGram, comparer);
@@ -59,6 +61,7 @@ namespace NaturalLanguageProcessing.NGrams
 
         public void Process()
         {
+            // Sort the temporary list and count how many items are the same in a row
             tempItemList.Sort(comparer);
 
             int count = 0;
@@ -81,13 +84,14 @@ namespace NaturalLanguageProcessing.NGrams
             // Add the last item to the dictionary
             previousNGram.NumberOfInstances = count;
             itemList.Add(previousNGram);
-            
+
             // Clear the temporary list to free up memory
             tempItemList.Clear();
         }
 
         public void DropRare(int cutoff)
         {
+            // Drop all items with fewer instances then cutoff
             itemList.RemoveAll(item => item.NumberOfInstances <= cutoff);
         }
 
