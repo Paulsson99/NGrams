@@ -132,7 +132,6 @@ namespace NGramsApplication
 
         private void makeDictionaryAndIndexButton_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("Test");
             makeDictionaryAndIndexButton.Enabled = false;
             indexingThread = new Thread(new ThreadStart(() => IndexingLoop()));
             indexingThread.IsBackground = true;
